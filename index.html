@@ -1319,6 +1319,8 @@ function enterBrowser(obraId) {
 }
 
 function initIntro() {
+  // Si hay parámetros en la URL, ir directo al buscador
+  if (window.location.search) { enterBrowser(null); return; }
   if (typeof OBRAS === 'undefined' || !OBRAS || !OBRAS.length) { enterBrowser(); return; }
 
   buildIntroPool(() => {
