@@ -212,8 +212,13 @@ body { font-family: var(--font-mono); background: #ffffff; color: var(--black); 
   color: #000; cursor: pointer; margin-bottom: 20px;
   flex-shrink: 0;
 }
+#intro-atlas {
+  font-size: 8px; letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--gray-mid); cursor: pointer; margin-top: -16px; margin-bottom: 20px;
+  width: 52px; text-align: center;
+}
+#intro-atlas:hover { color: var(--black); }
 #intro-autor {
-  font-size: 8px; letter-spacing: 0.18em; text-transform: uppercase;
   color: var(--gray-mid); margin-bottom: 3px; cursor: pointer;
 }
 #intro-autor:hover { color: var(--black); }
@@ -353,6 +358,7 @@ body { font-family: var(--font-mono); background: #ffffff; color: var(--black); 
 <div id="intro-page" class="active">
   <div id="intro-left">
     <div id="intro-logo" onclick="enterBrowser(null)">MAB</div>
+    <div id="intro-atlas" onclick="enterBrowser(null)">ATLAS</div>
     <div id="intro-nombre"></div>
     <div id="intro-tags"></div>
   </div>
@@ -1329,12 +1335,19 @@ function shareFilters() {
   });
   if (currentObraId) params.set('obra', currentObraId);
   const url = window.location.origin + window.location.pathname + (params.toString() ? '?' + params.toString() : '');
-  navigator.clipboard.writeText(url).then(() => {
-    const btn = document.getElementById('share-btn');
-    const orig = btn.textContent;
-    btn.textContent = '✓ Copiado';
-    setTimeout(() => btn.textContent = orig, 2000);
-  });
+  const btn = document.getElementById('share-btn');
+  const orig = btn.textContent;
+  // Intentar clipboard, fallback a prompt
+  try {
+    navigator.clipboard.writeText(url).then(() => {
+      btn.textContent = '✓';
+      setTimeout(() => btn.textContent = orig, 2000);
+    }).catch(() => {
+      prompt('Copiá este link:', url);
+    });
+  } catch(e) {
+    prompt('Copiá este link:', url);
+  }
 }
 
 function loadFiltersFromURL() {
@@ -1344,6 +1357,14 @@ function loadFiltersFromURL() {
     if (AF.hasOwnProperty(key)) {
       AF[key] = val.split('|').filter(Boolean);
     }
+  });
+  // Activar visualmente los tags en la UI
+  Object.entries(AF).forEach(([key, vals]) => {
+    vals.forEach(v => {
+      const ft = document.querySelector(`.tag[data-k="${key}"][data-v="${v}"]`);
+      if (ft) ft.classList.add('active');
+      updateActiveCount(key);
+    });
   });
   const obra = params.get('obra');
   if (obra) { renderObra(obra); return; }
