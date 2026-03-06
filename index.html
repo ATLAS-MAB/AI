@@ -358,6 +358,20 @@ body { font-family: var(--font-mono); background: #ffffff; color: var(--black); 
   flex-direction: column;
   height: 100%;
 }
+#lb-obra-titulo {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--black);
+  font-weight: 500;
+  margin-bottom: 14px;
+  line-height: 1.4;
+  cursor: pointer;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 10px;
+}
+#lb-obra-titulo:hover { text-decoration: underline; text-underline-offset: 2px; }
 #lb-sidebar .lb-tag-group { display: contents; }
 #lb-sidebar .lb-tag-group-label { display: none; }
 #lb-sidebar .lb-tag {
@@ -481,15 +495,14 @@ body { font-family: var(--font-mono); background: #ffffff; color: var(--black); 
 
 <header id="site-header">
   <div id="top-bar">
-    <div id="logo" onclick="goHome()">MAB<span id="logo-full"><span style="letter-spacing:0;margin:0 5px">-</span>MODERN ARCHITECTURE BROWSER</span></div>
+    <div id="logo" onclick="goIntro()">MAB<span id="logo-full"><span style="letter-spacing:0;margin:0 5px">-</span>MODERN ARCHITECTURE BROWSER</span></div>
     <div id="top-btns">
       <!-- ESTADO: botón desplegable independiente del grid -->
       <div id="estado-btn-group">
         <button id="btn-estado" onclick="toggleEstado()" title="Filtrar por estado de obra">◉</button>
         <div id="fi-estado"></div>
       </div>
-      <button id="btn-intro" onclick="goIntro()" title="Inicio">⊙</button>
-      <button id="btn-reset" onclick="resetAll()" title="Limpiar filtros">↺</button>
+            <button id="btn-reset" onclick="resetAll()" title="Limpiar filtros">↺</button>
       <button id="share-btn" onclick="shareFilters()" title="Compartir selección">⇪</button>
     </div>
   </div>
@@ -590,7 +603,7 @@ body { font-family: var(--font-mono); background: #ffffff; color: var(--black); 
 
 // ── JERARQUÍA USO ─────────────────────────────────────────
 const USO_JERARQUIA = {
-  "Residencia":                ["Cabaña","Casa unifamiliar","Edificio de vivienda","Loft","Refugio","Vivienda colectiva","Vivienda social"],
+  "Residencia":                ["Cabaña","Vivienda unifamiliar","Edificio de vivienda","Loft","Refugio","Vivienda colectiva","Vivienda social"],
   "Educación":                 ["Aula magna","Campus universitario","Escuela primaria","Escuela secundaria","Facultad","Instituto técnico","Jardín de infantes","Universidad"],
   "Cultura":                   ["Archivo","Auditorio","Biblioteca","Centro cultural","Cinema","Fundación","Museo","Sala de exposiciones","Teatro"],
   "Religión":                  ["Capilla","Catedral","Cementerio","Crematorio","Iglesia","Mezquita","Sinagoga"],
@@ -711,14 +724,14 @@ function buildTags() {
     uso:         USO_TODOS,
     material: ["Acero","Acero corten","Acero inoxidable","Adobe","Acrilico","Aluminio","Arenisca","Bambu","Bronce","CLT","Caliza","Canamo","Ceramica","Cobre","Cemento","Corcho","Fibra de carbono","Fibra de vidrio","Geotextil","Granito","Hierro","Hormigon","Ladrillo","Madera laminada","Madera maciza","MDF","Membrana ETFE","Membrana tensada","Mortero","OSB","Paja","Piedra","Pizarra","Policarbonato","Porcelana","PVC","Resinas","Tela asfaltica","Terciado","Terracota","Tierra compactada","Titanio","Vidrio","Vidrio estructural","Vidrio laminado","Vidrio templado","Yeso","Zinc"],
     componente:  ["Aire acondicionado","Artefacto sanitario","Ascensor","Barandilla","Canaleta","Carpinteria","Cerco","Cielorraso","Columna","Cubierta","Entrepiso","Escalera","Estructura","Fachada ventilada","Griferia","Hogar","Iluminacion","Instalacion de incendio","Instalacion pluvial","Lucarna","Manija","Marquesina","Muro compuesto","Muro opaco","Muro translucido","Muro transparente","Panel","Parasol","Parrilla","Persiana","Piso","Porton","Postigo","Puerta","Rampa","Revestimiento","Senaletica","Toldo","Viga"],
-    tipografica: ["Axonometria","Corte","Despiece","Detalle constructivo","Foto de maqueta","Fotomontaje","Maqueta","Maqueta virtual","Perfil urbano","Perspectiva exterior","Perspectiva interior","Planimetria","Planta","Render exterior","Render interior","Vista"],
+    tipografica: ["Axonometria","Corte","Despiece","Detalle constructivo","Foto de maqueta","Fotomontaje","Maqueta","Maqueta virtual","Perfil urbano","Perspectiva exterior","Perspectiva interior","Planimetria","Planta","Perspectiva exterior","Perspectiva interior","Vista"],
     tipoespacial: ["Aula","Auditorio","Baño","Biblioteca","Calle","Cocina","Comedor","Consultorio","Deposito","Dormitorio","Espacio deportivo","Espacio industrial","Estacionamiento","Estar","Foyer","Galeria","Garaje cubierto","Hall de ingreso","Invernadero","Jardin","Lobby","Oficina","Patio","Piscina cubierta","Plaza","Sala de espera","Sala de lectura","Sala de reuniones","Showroom","Terraza","Vereda","Vestuario"]
   };
 
   // Poblar estado (botón separado)
   const estEl = document.getElementById('fi-estado');
   if (estEl) {
-    ["Construido","No construido","Demolido","Restaurado","Reconstruido"].forEach(v => {
+    ["Construido","No construido","Demolido","Restaurado","Reconstruido","Ampliacion"].forEach(v => {
       const t = document.createElement('span');
       t.className = 'tag'; t.textContent = v;
       t.dataset.k = 'estado'; t.dataset.v = v;
@@ -792,7 +805,12 @@ function resetAll() {
 // ══════════════════════════════════════════
 function obraMatch(o) {
   if (AF.autor.length && !AF.autor.some(a => getAutores(o).includes(a))) return false;
-  if (AF.estado.length && !AF.estado.includes(o.estado)) return false;
+  if (AF.estado.length) {
+    // "Construido" expande a todos los estados construidos
+    const estadoExpand = (s) => s === 'Construido' ? ['Construido','Demolido','Restaurado','Reconstruido'] : [s];
+    const estadosExpanded = [...new Set(AF.estado.flatMap(estadoExpand))];
+    if (!estadosExpanded.includes(o.estado)) return false;
+  }
   if (AF.uso.length) {
     // Expandir cada tag activo: si es categoría incluye todos sus subtipos
     const expanded = [...new Set(AF.uso.flatMap(t => usoExpand(t)))];
@@ -1020,6 +1038,7 @@ function renderHome() {
 //  RENDER OBRA
 // ══════════════════════════════════════════
 function renderObra(id) {
+  window.scrollTo(0, 0);
   currentObraId = id;
   const o = OBRAS.find(x => x.id === id);
   document.getElementById('page-title-bar').style.display = 'flex';
@@ -1616,8 +1635,10 @@ function loadFiltersFromURL() {
     });
   });
   const obra = params.get('obra');
-  if (obra) { renderObra(obra); return; }
-  renderHome();
+  if (obra) { enterBrowser(obra); return; }
+  // Si hay filtros activos ir al buscador, si no dejar que initIntro maneje
+  const hayFiltros = Object.values(AF).some(v => v.length > 0);
+  if (hayFiltros) { enterBrowser(null); return; }
 }
 
 function goHome() {
@@ -1702,6 +1723,18 @@ function lbShow(item) {
     tags.forEach(([l,k,v]) => g.appendChild(makeTag(l,k,v)));
     sidebar.appendChild(g);
   }
+
+  // Título de la obra arriba del sidebar
+  const tituloEl = document.createElement('div');
+  tituloEl.id = 'lb-obra-titulo';
+  const autorLabel = obra.autor ? (Array.isArray(obra.autor) ? obra.autor.join(' + ') : obra.autor) : '';
+  tituloEl.textContent = autorLabel + (autorLabel && obra.nombre ? ' — ' : '') + (obra.nombre || '');
+  tituloEl.onclick = (e) => {
+    e.stopPropagation();
+    document.getElementById('lightbox').classList.remove('open');
+    if (obra.id) renderObra(obra.id);
+  };
+  sidebar.appendChild(tituloEl);
 
   // Lista plana única — máximo 30 tags
   const autores = obra.autor ? (Array.isArray(obra.autor) ? obra.autor : [obra.autor]) : [];
@@ -1803,11 +1836,12 @@ function lbPopupOpen(k, v) {
   gallery.innerHTML = '';
 
   results.forEach(({ img, obra }) => {
-    const cell = mkCell(img.src, '', () => {
+    const _autorLabel = getAutores(obra).join(' + ');
+    const cell = mkCell(img.src, _autorLabel, () => {
       document.getElementById('lb-popup').classList.remove('open');
       document.getElementById('lightbox').classList.remove('open');
       renderObra(obra.id);
-    });
+    }, getAutores(obra), obra.nombre);
     // Tags B de la imagen
     const tagsB = [
       ...img.tipografica.map(v => ({k:'tipografica',v})),
