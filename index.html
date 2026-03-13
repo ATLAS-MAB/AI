@@ -1,5 +1,33 @@
 <!DOCTYPE html>
 <html lang="es">
+<!--
+═══════════════════════════════════════════════════════════════
+  MAB — CONTROL DE VERSIÓN OBLIGATORIO PARA CLAUDE
+═══════════════════════════════════════════════════════════════
+  ANTES DE EDITAR ESTE ARCHIVO, CLAUDE DEBE:
+
+  1. LEER el historial del chat activo para identificar cuál fue
+     el ÚLTIMO archivo entregado al usuario (outputs).
+
+  2. PARTIR SIEMPRE del último output entregado, NUNCA del
+     archivo original del proyecto (/mnt/project/).
+
+  3. VERIFICAR que todos los fixes anteriores están presentes
+     antes de agregar uno nuevo. Checklist mínimo:
+
+     [ ] extra-tag-bar (tag cloud fallback con título + ✕)
+     [ ] resetAll limpia searchQuery y llama hideExtraTagBar()
+     [ ] lbBboxShow / lbBboxClear (highlight bbox en lightbox)
+     [ ] Canvas #lb-bbox-canvas en el HTML del lightbox
+     [ ] CSS #extra-tag-bar, #lb-bbox-canvas.active
+
+  4. NUNCA sobreescribir un output sin haber verificado el punto 3.
+
+  ARCHIVO ACTUAL: MAB_CLAUDE_08.html
+  UPLOADER ACTUAL: mab_uploader.py (con USE_BBOX + fix décadas)
+  OBRAS ACTUAL: obras.js (con "1970s" corregido)
+═══════════════════════════════════════════════════════════════
+-->
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -194,6 +222,18 @@ body { font-family: var(--font-mono); background: #ffffff; color: var(--black); 
 #back-btn { cursor: pointer; margin-right: 12px; }
 #back-btn:hover { color: var(--black); }
 
+#extra-tag-bar {
+  padding: 5px 24px 7px; align-items: center; gap: 10px;
+  font-size: 9.5px; letter-spacing: 0.1em;
+  border-top: 1px solid var(--gray-light);
+}
+#extra-tag-label { color: var(--black); text-transform: uppercase; }
+#extra-tag-close {
+  background: none; border: none; cursor: pointer;
+  font-size: 10px; color: var(--gray-mid); padding: 0 2px; line-height: 1;
+}
+#extra-tag-close:hover { color: var(--black); }
+
 /* CONTENIDO */
 #main-content { padding: 0 24px 60px; }
 
@@ -382,7 +422,13 @@ body { font-family: var(--font-mono); background: #ffffff; color: var(--black); 
 #lb-img-area {
   flex: 1; display: flex; align-items: center; justify-content: center;
   cursor: pointer; overflow: hidden; padding: 48px 24px 48px 24px;
+  position: relative;
 }
+#lb-bbox-canvas {
+  position: absolute; pointer-events: none;
+  opacity: 0; transition: opacity 0.2s ease;
+}
+#lb-bbox-canvas.active { opacity: 1; }
 #lightbox img, #lightbox video {
   max-width: 100%; max-height: 100%;
   object-fit: contain; user-select: none;
@@ -627,6 +673,11 @@ body { font-family: var(--font-mono); background: #ffffff; color: var(--black); 
     <span id="obra-title-text"></span>
   </div>
 
+  <div id="extra-tag-bar" style="display:none;">
+    <span id="extra-tag-label"></span>
+    <button id="extra-tag-close" onclick="clearExtraTag()">&#x2715;</button>
+  </div>
+
 </header>
 
 <main id="main-content">
@@ -642,6 +693,7 @@ body { font-family: var(--font-mono); background: #ffffff; color: var(--black); 
   </div>
   <div id="lb-img-area" onclick="lbNext()">
     <img id="lb-img" src="" alt="">
+    <canvas id="lb-bbox-canvas"></canvas>
     <video id="lb-video" controls autoplay loop style="display:none;max-width:100%;max-height:100%;cursor:pointer;" onclick="lbNext()"></video>
   </div>
 </div>
@@ -736,10 +788,19 @@ function toggleDropdown(key) {
   if (!wasOpen) {
     dd.classList.add('open');
     lbl.classList.add('open');
-    // Calcular columnas después de que el dropdown sea visible
+    // Reordenar: activos primero
+    const active = AF[key] || [];
+    const tags = [...dd.querySelectorAll('.tag')];
+    tags.sort((a, b) => {
+      const aA = active.includes(a.dataset.v), bA = active.includes(b.dataset.v);
+      return aA === bA ? 0 : aA ? -1 : 1;
+    });
+    tags.forEach(t => dd.appendChild(t));
     requestAnimationFrame(() => {
       const cols = calcDropdownCols(dd);
       dd.style.setProperty('--dd-cols', cols);
+      const inp = dd.querySelector('input');
+      if (inp) inp.focus();
     });
   }
 }
@@ -784,7 +845,7 @@ function buildTags() {
     uso:         USO_TODOS,
     material: ["Acero","Acero corten","Acero inoxidable","Adobe","Acrilico","Aluminio","Arenisca","Bambu","Bronce","CLT","Caliza","Canamo","Ceramica","Cobre","Cemento","Corcho","Fibra de carbono","Fibra de vidrio","Geotextil","Granito","Hierro","Hormigon","Ladrillo","Madera laminada","Madera maciza","MDF","Membrana ETFE","Membrana tensada","Mortero","OSB","Paja","Piedra","Pizarra","Policarbonato","Porcelana","PVC","Resinas","Tela asfaltica","Terciado","Terracota","Tierra compactada","Titanio","Vidrio","Vidrio estructural","Vidrio laminado","Vidrio templado","Yeso","Zinc"],
     componente:  ["Aire acondicionado","Artefacto sanitario","Ascensor","Barandilla","Canaleta","Carpinteria","Cerco","Cielorraso","Columna","Cubierta","Entrepiso","Escalera","Estructura","Fachada ventilada","Griferia","Hogar","Iluminacion","Instalacion de incendio","Instalacion pluvial","Lucarna","Manija","Marquesina","Muro compuesto","Muro opaco","Muro translucido","Muro transparente","Panel","Parasol","Parrilla","Persiana","Piso","Porton","Postigo","Puerta","Rampa","Revestimiento","Senaletica","Toldo","Viga"],
-    tipografica: ["Axonometria","Corte","Despiece","Detalle constructivo","Foto de maqueta","Fotomontaje","Maqueta","Maqueta virtual","Perfil urbano","Perspectiva exterior","Perspectiva interior","Planimetria","Planta","Perspectiva exterior","Perspectiva interior","Vista"],
+    tipografica: ["Axonometria","Corte","Despiece","Detalle constructivo","Fotomontaje","Maqueta","Perfil urbano","Perspectiva exterior","Perspectiva interior","Planimetria","Planta","Vista"],
     tipoespacial: ["Aula","Auditorio","Baño","Biblioteca","Calle","Cocina","Comedor","Consultorio","Deposito","Dormitorio","Espacio deportivo","Espacio industrial","Estacionamiento","Estar","Foyer","Galeria","Garaje cubierto","Hall de ingreso","Invernadero","Jardin","Lobby","Oficina","Patio","Piscina cubierta","Plaza","Sala de espera","Sala de lectura","Sala de reuniones","Showroom","Terraza","Vereda","Vestuario"]
   };
 
@@ -822,10 +883,16 @@ function buildTags() {
       });
     };
     el.appendChild(inp);
-    vals.forEach(v => {
+    const active = AF[key] || [];
+    const sorted = [...vals].sort((a, b) => {
+      const aA = active.includes(a), bA = active.includes(b);
+      return aA === bA ? 0 : aA ? -1 : 1;
+    });
+    sorted.forEach(v => {
       if (!v || v === '—') return;
       const t = document.createElement('span');
       t.className = 'tag'; t.textContent = v;
+      if (active.includes(v)) t.classList.add('active');
       t.dataset.k = key; t.dataset.v = v;
       t.onclick = () => toggleF(key, v, t);
       el.appendChild(t);
@@ -857,6 +924,8 @@ function resetAll() {
   document.querySelectorAll('.tag').forEach(t => t.classList.remove('active'));
   Object.keys(AF).forEach(k => updateActiveCount(k));
   closeAllDropdowns();
+  searchQuery = '';
+  hideExtraTagBar();
   currentObraId ? renderObra(currentObraId) : renderHome();
 }
 
@@ -918,6 +987,23 @@ function elemVals(img, campo) {
 //  RENDER HOME
 // ══════════════════════════════════════════
 
+function escalaFallback(i) {
+  if (i.escala) return i.escala;
+  if (!i.tipografica || !i.tipografica.length) return 3;
+  const t = i.tipografica[0] || '';
+  if (t === 'Planimetria' || t === 'Perfil urbano')   return 7;
+  if (t === 'Planta')                                  return 9;
+  if (t === 'Corte')                                   return 10;
+  if (t === 'Vista')                                   return 11;
+  if (t === 'Axonometria')                             return 12;
+  if (t === 'Detalle constructivo' || t === 'Despiece')return 13;
+  if (t === 'Render exterior' || t === 'Perspectiva exterior' || t === 'Fotomontaje') return 15.2;
+  if (t === 'Render interior' || t === 'Perspectiva interior') return 15.4;
+  if (t === 'Maqueta virtual') return 15.8;
+  if (t === 'Foto de maqueta' || t === 'Maqueta')       return 16;
+  return 14;
+}
+
 function renderObraMobile(o, g) {
   // Limpiar elementos previos
   ['mobile-obra-tags','mobile-obra-viewer'].forEach(id => { const el=document.getElementById(id); if(el) el.remove(); });
@@ -925,6 +1011,7 @@ function renderObraMobile(o, g) {
   let imgs = o.imagenes;
   const hasF = AF.tipografica.length || AF.tipoespacial.length || AF.material.length || AF.componente.length;
   if (hasF) imgs = imgs.filter(imgMatch);
+  imgs = [...imgs].sort((a, b) => escalaFallback(a) - escalaFallback(b));
   lbImages = imgs.map(i => ({ src: i.src, elementos: i.elementos||[], tipografica: i.tipografica||[], extra: i.extra||[], obra: o }));
 
   // Viewer fijo
@@ -1208,22 +1295,7 @@ function renderObra(id) {
 
   if (!imgs.length) { g.innerHTML = '<div id="empty-state" style="display:block">Sin imágenes para los filtros activos</div>'; return; }
 
-  // Orden por campo escala (1-16)
-  // Sin escala: fotos sin tipografica → 3, dibujos → inferir por tipo
-  const escalaFallback = i => {
-    if (i.escala) return i.escala;
-    if (!i.tipografica || !i.tipografica.length) return 3; // foto sin clasificar
-    const t = i.tipografica[0] || '';
-    if (t === 'Planimetria' || t === 'Perfil urbano')   return 7;
-    if (t === 'Planta')                                  return 9;
-    if (t === 'Corte')                                   return 10;
-    if (t === 'Vista')                                   return 11;
-    if (t === 'Axonometria')                             return 12;
-    if (t === 'Detalle constructivo' || t === 'Despiece')return 13;
-    if (t === 'Render interior' || t === 'Render exterior' || t === 'Perspectiva interior' || t === 'Perspectiva exterior' || t === 'Fotomontaje' || t === 'Maqueta virtual') return 15;
-    if (t === 'Foto de maqueta' || t === 'Maqueta')       return 16;
-    return 14;
-  };
+  // Orden por campo escala (1-16) — usa escalaFallback global
   imgs = [...imgs].sort((a, b) => escalaFallback(a) - escalaFallback(b));
   const lbImgs = AF.fotografo.length ? imgs.filter(i => (i.tipografica||[]).length === 0) : imgs;
   lbImages = lbImgs.map(i => ({ src: i.src, elementos: i.elementos||[], tipografica: i.tipografica||[], extra: i.extra||[], obra: o })); lbIdx = 0;
@@ -1829,6 +1901,16 @@ function lbShow(item) {
       };
       t.dataset.k = k; t.dataset.v = v;
     }
+    // BBOX highlight — solo para material y componente
+    if ((k === 'material' || k === 'componente') && v) {
+      const bboxes = elementos
+        .filter(el => el[k] === v && el.bbox && el.bbox.length === 4)
+        .map(el => el.bbox);
+      if (bboxes.length > 0) {
+        t.addEventListener('mouseenter', () => lbBboxShow(bboxes));
+        t.addEventListener('mouseleave', () => lbBboxClear());
+      }
+    }
     return t;
   }
 
@@ -1903,6 +1985,45 @@ function lbShow(item) {
     });
   }
 }
+function lbBboxShow(bboxes) {
+  const img = document.getElementById('lb-img');
+  const canvas = document.getElementById('lb-bbox-canvas');
+  if (!img || !canvas || !img.complete || img.naturalWidth === 0) return;
+  const area = document.getElementById('lb-img-area');
+  const areaRect = area.getBoundingClientRect();
+  const imgRect = img.getBoundingClientRect();
+  canvas.width = imgRect.width;
+  canvas.height = imgRect.height;
+  canvas.style.left = (imgRect.left - areaRect.left) + 'px';
+  canvas.style.top = (imgRect.top - areaRect.top) + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = 'rgba(0,0,0,0.45)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.globalCompositeOperation = 'destination-out';
+  bboxes.forEach(([y1, x1, y2, x2]) => {
+    const px = (x1 / 1000) * canvas.width;
+    const py = (y1 / 1000) * canvas.height;
+    const pw = ((x2 - x1) / 1000) * canvas.width;
+    const ph = ((y2 - y1) / 1000) * canvas.height;
+    ctx.filter = 'blur(8px)';
+    ctx.fillStyle = 'rgba(0,0,0,1)';
+    ctx.fillRect(px - 12, py - 12, pw + 24, ph + 24);
+  });
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.filter = 'none';
+  canvas.classList.add('active');
+}
+
+function lbBboxClear() {
+  const canvas = document.getElementById('lb-bbox-canvas');
+  if (canvas) {
+    canvas.classList.remove('active');
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }
+}
+
 function lbOpen(idx) {
   lbIdx = idx;
   lbShow(lbImages[lbIdx] || lbImages[0]);
@@ -2008,6 +2129,23 @@ let searchActive = false;
 let searchQuery = '';
 let _allTagsCache = null;
 
+function showExtraTagBar(tag) {
+  const bar = document.getElementById('extra-tag-bar');
+  document.getElementById('extra-tag-label').textContent = tag;
+  bar.style.display = 'flex';
+}
+
+function hideExtraTagBar() {
+  const bar = document.getElementById('extra-tag-bar');
+  if (bar) { bar.style.display = 'none'; document.getElementById('extra-tag-label').textContent = ''; }
+}
+
+function clearExtraTag() {
+  searchQuery = '';
+  hideExtraTagBar();
+  renderHome();
+}
+
 function buildAllTags() {
   if (_allTagsCache) return _allTagsCache;
   const counter = {};
@@ -2060,6 +2198,7 @@ function renderTagCloud(filter) {
       }
       // Fallback: búsqueda de texto libre
       searchQuery = tag.toLowerCase();
+      showExtraTagBar(tag);
       renderHome();
     };
     cloud.appendChild(btn);
